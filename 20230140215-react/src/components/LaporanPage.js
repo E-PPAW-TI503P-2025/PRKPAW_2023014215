@@ -5,23 +5,58 @@ import { jwtDecode } from 'jwt-decode';
 
 const API_URL = 'http://localhost:3001/api/presensi';
 
+// 1. GANTI BASE URL JADI ROOT SERVER SAJA (HAPUS 'uploads/' DI SINI)
+const SERVER_URL = 'http://localhost:3001/'; 
+
 function LaporanPage() {
     const [laporan, setLaporan] = useState([]);
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
-    // Fungsi untuk memformat tanggal (LOGIKA TETAP SAMA)
     const formatDate = (dateString) => {
         if (!dateString) return '-';
         return new Date(dateString).toLocaleString('id-ID', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
         });
+    };
+
+    // --- 2. FUNGSI PINTAR UNTUK URL GAMBAR ---
+    const getImageUrl = (imagePath) => {
+        if (!imagePath) return null;
+        
+        // Bersihkan backslash (\) jadi slash (/) untuk kompatibilitas Windows
+        let cleanPath = imagePath.replace(/\\/g, '/');
+
+        // Hapus slash di depan jika ada (misal: /uploads/... jadi uploads/...)
+        if (cleanPath.startsWith('/')) {
+            cleanPath = cleanPath.substring(1);
+        }
+
+        // LOGIKA UTAMA: Cek apakah path sudah mengandung 'uploads/'
+        if (cleanPath.startsWith('uploads/')) {
+            // Jika SUDAH ADA 'uploads', jangan ditambah lagi. Langsung tempel ke SERVER_URL
+            // Hasil: http://localhost:3001/uploads/file.jpg
+            return `${SERVER_URL}${cleanPath}`;
+        } else {
+            // Jika BELUM ADA (cuma nama file), baru kita tambahkan 'uploads/'
+            // Hasil: http://localhost:3001/uploads/file.jpg
+            return `${SERVER_URL}uploads/${cleanPath}`;
+        }
+    };
+
+    const renderLocation = (lat, long) => {
+        if (!lat || !long) return <span className="text-gray-400">-</span>;
+        // Ganti URL Google Maps biasa (google.com) untuk menghindari masalah rendering atau tautan mati
+        // Saya asumsikan link ini untuk menampilkan lokasi, bukan masalah UI.
+        const googleMapsUrl = `https://maps.google.com/maps?q=${lat},${long}`;
+        return (
+            <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-[#0070c0] hover:underline font-bold text-xs"
+               style={{ textShadow: '1px 1px 0 #ffffff' }}>
+                <span>{parseFloat(lat).toFixed(5)}, {parseFloat(long).toFixed(5)}</span>
+            </a>
+        );
     };
 
     const fetchLaporan = async () => {
@@ -29,171 +64,125 @@ function LaporanPage() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('token'); 
-            
-            if (!token) {
-                 navigate('/login');
-                 return;
-            }
-            const decoded = jwtDecode(token);
-            if (decoded.role !== 'admin') {
-                setError('Akses ditolak. Game Master Only (Admin).');
-                setIsLoading(false);
-                return;
-            }
+            if (!token) { navigate('/login'); return; }
 
-            const response = await axios.get(
-                API_URL,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                } 
-            );
-            setLaporan(response.data.presensi); 
-            setError(null);
+            const response = await axios.get(API_URL, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = response.data.presensi || response.data.data || [];
+            setLaporan(data); 
         } catch (err) {
-            setError(err.response ? err.response.data.message : 'Gagal mengambil data level');
-            setLaporan([]);
+            setError(err.response ? err.response.data.message : 'Gagal mengambil data');
         } finally {
             setIsLoading(false);
         }
     };
     
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            fetchLaporan();
-        } else {
-            navigate('/login');
-        }
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
+    useEffect(() => { fetchLaporan(); }, []); 
 
     return (
-        <div 
-            className="min-h-screen flex flex-col items-center py-10 px-4 relative overflow-hidden"
+        <div className="min-h-screen flex flex-col items-center py-10 px-4"
+            // Mario Bros Sky Background (Langit Biru cerah)
             style={{
-                backgroundColor: "#5c94fc", // Mario Sky Blue
-                fontFamily: '"Press Start 2P", cursive', // Pixel Font
-                color: "#000"
-            }}
-        >
-            {/* Inject Google Font untuk gaya Pixel */}
-            <style>
-                {`@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');`}
-            </style>
-
-            {/* Dekorasi Awan (CSS Only) */}
-            <div className="absolute top-5 left-10 text-white opacity-80 text-6xl select-none">☁</div>
-            <div className="absolute top-20 right-20 text-white opacity-80 text-6xl select-none">☁</div>
-
-            {/* Header Box */}
-            <header className="w-full max-w-6xl flex flex-col md:flex-row justify-between items-center mb-8 z-10">
-                <div className="bg-[#e70012] border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-4 md:mb-0">
-                    <h2 className="text-xl md:text-2xl text-white tracking-widest drop-shadow-md">
-                        ★ LAPORAN ★
-                    </h2>
-                </div>
-                
-                <Link 
-                    to="/dashboard"
-                    className="bg-[#fbd000] border-4 border-black px-4 py-3 text-xs md:text-sm hover:bg-[#ffdf4e] transition-transform active:translate-y-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                >
-                    &lt; KEMBALI KE DASHBOARD
+                backgroundColor: '#6b8cff', // Warna Langit Mario
+                backgroundImage: 'radial-gradient(circle, #ffffff 15%, transparent 20%)', // Efek Awan
+                backgroundSize: '200px 200px',
+                backgroundPosition: '0 50px, 100px 150px'
+            }}>
+            
+            <header className="w-full max-w-7xl flex justify-between items-center mb-8 border-b-4 border-black pb-4">
+                <h2 className="text-3xl font-extrabold uppercase text-white" style={{ textShadow: '2px 2px 0 #000000' }}>
+                    📜 RIWAYAT
+                </h2>
+                <Link to="/dashboard" 
+                    // Tombol Kembali: Menyerupai 'Warp Pipe' kecil
+                    className="py-2 px-4 bg-[#339933] text-white font-bold border-4 border-black shadow-[2px_2px_0px_0px_#2e8b57] hover:bg-[#2e8b57] text-sm"
+                    style={{ borderRadius: '10px / 30px' }}>
+                    ← KEMBALI
                 </Link>
             </header>
 
-            {/* Kontrol & Error */}
-            <div className="w-full max-w-6xl mb-6 flex flex-col gap-4 z-10">
-                <div className="flex justify-start">
-                    <button 
-                        onClick={fetchLaporan} 
-                        disabled={isLoading}
-                        className={`px-6 py-3 border-4 border-black text-white text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-y-1 active:shadow-none ${
-                            isLoading 
-                                ? 'bg-gray-500 cursor-wait' 
-                                : 'bg-[#009c00] hover:bg-[#00b300]' // Green Pipe Color
-                        }`}
-                    >
-                        {isLoading ? 'LOADING...' : '↻ REFRESH DATA'}
-                    </button>
+            {/* Error Message: Menyerupai Teks Game Over */}
+            {error && (
+                <div className="bg-[#ff4500] text-white p-4 mb-4 font-bold border-4 border-black shadow-[4px_4px_0px_0px_#8b0000]">
+                    ❌ ERROR: {error}
                 </div>
+            )}
 
-                {error && (
-                    <div className="bg-black border-4 border-white text-[#e70012] p-4 text-xs text-center animate-pulse">
-                        <p>☠ ERROR: {error}</p>
-                    </div>
-                )}
+
+            <div className="w-full max-w-7xl mb-6">
+                <button onClick={fetchLaporan} disabled={isLoading} 
+                    // Tombol Refresh: Menyerupai 'Star' atau 'Super Mushroom'
+                    className="px-6 py-2 bg-[#ffc300] text-black font-extrabold border-4 border-black shadow-[4px_4px_0px_0px_#a0522d] hover:bg-[#ffdb58] transition">
+                    {isLoading ? '⏳ Loading ...' : '🔄 REFRESH '}
+                </button>
             </div>
 
-            {/* Container Tabel (High Score Style) */}
-            <div 
-                className="w-full max-w-6xl relative z-10"
-                style={{
-                    backgroundColor: "#000000", // Black Arcade Background
-                    border: "4px solid #ffffff",
-                    boxShadow: "8px 8px 0px 0px rgba(0,0,0,0.5)",
-                }}
-            >
-                <div className="overflow-x-auto p-2">
-                    {laporan.length === 0 && !isLoading && !error ? (
-                        <p className="text-center text-white py-10 text-xs">NO DATA FOUND IN CASTLE...</p>
-                    ) : (
-                        <table className="min-w-full text-[10px] md:text-xs font-mono leading-loose">
-                            {/* Header Tabel */}
-                            <thead>
-                                <tr className="text-[#fbd000] border-b-4 border-white">
-                                    <th className="px-4 py-4 text-left">NO</th>
-                                    <th className="px-4 py-4 text-left">NAMA</th>
-                                    <th className="px-4 py-4 text-left"> MASUK</th>
-                                    <th className="px-4 py-4 text-left"> KELUAR</th>
-                                    <th className="px-4 py-4 text-center">STATUS</th>
-                                </tr>
-                            </thead>
-                            
-                            {/* Body Tabel */}
-                            <tbody className="text-white">
-                                {laporan.map((item, index) => (
-                                    <tr key={item.id} className="hover:bg-[#333333] transition-colors border-b border-gray-700">
-                                        <td className="px-4 py-4">{index + 1}</td>
-                                        <td className="px-4 py-4 text-[#5c94fc]">
-                                            {item.User ? item.User.nama.toUpperCase() : 'UNKNOWN'}
+            {/* TABEL: Menyerupai Area Permainan / Castle Wall */}
+            <div className="w-full max-w-7xl p-6 relative shadow-2xl bg-[#a52a2a]" // Coklat Bata
+                 style={{ border: '4px solid black', boxShadow: '8px 8px 0px 0px #8b4513' }}>
+                <div className="overflow-x-auto border-4 border-black bg-white/90">
+                    <table className="min-w-full divide-y divide-black">
+                        {/* THEAD: Menyerupai Papan Tulis / Area Informasi */}
+                        <thead className="bg-[#f0e68c] border-b-4 border-black"> 
+                            <tr>
+                                <th className="px-4 py-3 text-left font-extrabold text-black uppercase border-r-2 border-black">NO</th>
+                                <th className="px-4 py-3 text-left font-extrabold text-black uppercase border-r-2 border-black">NAMA</th>
+                                <th className="px-4 py-3 text-center font-extrabold text-black uppercase border-r-2 border-black">FOTO</th>
+                                <th className="px-4 py-3 text-left font-extrabold text-black uppercase border-r-2 border-black">MASUK </th>
+                                <th className="px-4 py-3 text-left font-extrabold text-black uppercase border-r-2 border-black">LOKASI</th>
+                                <th className="px-4 py-3 text-left font-extrabold text-black uppercase border-r-2 border-black">KELUAR </th>
+                                <th className="px-4 py-3 text-left font-extrabold text-black uppercase">STATUS</th>
+                            </tr>
+                        </thead>
+                        {/* TBODY: Menyerupai Kotak Teks Game */}
+                        <tbody className="divide-y divide-gray-400 text-sm text-black">
+                            {laporan.map((item, index) => {
+                                const finalImageUrl = getImageUrl(item.buktiFoto);
+
+                                return (
+                                    <tr key={index} className="hover:bg-[#ffefc5]"> {/* Hover: Warna Pasir */}
+                                        <td className="px-4 py-4 border-r border-gray-400 font-bold">{index + 1}.</td>
+                                        <td className="px-4 py-4 font-extrabold border-r border-gray-400">{item.User?.nama || 'User'}</td>
+                                        
+                                        {/* TAMPILKAN FOTO */}
+                                        <td className="px-4 py-2 border-r border-gray-400 text-center">
+                                            {finalImageUrl ? (
+                                                <a href={finalImageUrl} target="_blank" rel="noreferrer">
+                                                    <img 
+                                                        src={finalImageUrl} 
+                                                        alt="Bukti" 
+                                                        // Gaya Foto: Seperti Item yang Jatuh
+                                                        className="w-16 h-12 object-cover rounded-full border-4 border-[#ffc300] hover:scale-[1.7] transition-transform mx-auto shadow-md"
+                                                        onError={(e) => { e.target.onerror = null; e.target.src = "https://via.placeholder.com/50?text=Error"; }} 
+                                                    />
+                                                </a>
+                                            ) : <span className="text-gray-600 italic">No Power Up</span>}
                                         </td>
-                                        <td className="px-4 py-4 text-[#009c00]">
-                                            {formatDate(item.checkIn)}
-                                        </td>
-                                        <td className="px-4 py-4 text-[#e70012]">
-                                            {item.checkOut ? (
-                                                formatDate(item.checkOut)
-                                            ) : (
-                                                <span className="text-gray-500">---</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-4 text-center">
-                                            {item.checkOut ? (
-                                                <span className="bg-gray-700 text-white px-2 py-1 border-2 border-gray-500">SELESAI</span>
-                                            ) : (
-                                                <span className="bg-[#e70012] text-white px-2 py-1 border-2 border-white animate-pulse">BERJALAN</span>
-                                            )}
+
+                                        <td className="px-4 py-4 border-r border-gray-400 text-[#008000] font-mono font-bold">{formatDate(item.checkIn)}</td>
+                                        <td className="px-4 py-4 border-r border-gray-400">{renderLocation(item.latitude_in, item.longitude_in)}</td>
+                                        <td className="px-4 py-4 border-r border-gray-400 text-[#ff4500] font-mono font-bold">{item.checkOut ? formatDate(item.checkOut) : 'AKTIF'}</td>
+                                        <td className="px-4 py-4 italic font-bold">
+                                            {item.checkOut 
+                                                ? <span className="text-[#008000]">SELESAI ✅</span> 
+                                                : <span className="text-[#ff4500]">BERJALAN... 🏃</span>}
                                         </td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
+                                );
+                            })}
+                            {/* Jika tidak ada data */}
+                            {laporan.length === 0 && !isLoading && (
+                                <tr>
+                                    <td colSpan="7" className="text-center py-6 text-lg font-bold text-gray-700">
+                                        No Data: Silahkan Kembali!
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            
-            {/* Ground Decoration (Hiasan Lantai Bata) */}
-            <div className="fixed bottom-0 w-full h-16 bg-[#c84c0c] border-t-4 border-black z-0" 
-                 style={{ 
-                     backgroundImage: "linear-gradient(45deg, #d46b38 25%, transparent 25%, transparent 75%, #d46b38 75%, #d46b38), linear-gradient(45deg, #d46b38 25%, transparent 25%, transparent 75%, #d46b38 75%, #d46b38)",
-                     backgroundSize: "20px 20px",
-                     backgroundPosition: "0 0, 10px 10px"
-                 }}>
-            </div>
-
-            
         </div>
     );
 }

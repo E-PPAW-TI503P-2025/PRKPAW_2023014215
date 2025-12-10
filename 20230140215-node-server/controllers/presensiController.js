@@ -154,6 +154,7 @@ exports.CheckOut = async (req, res) => {
     }
 };
 
+
 exports.deletePresensi = [
     checkAdmin, // Otorisasi: Hanya admin yang boleh menghapus
     async (req, res) => {

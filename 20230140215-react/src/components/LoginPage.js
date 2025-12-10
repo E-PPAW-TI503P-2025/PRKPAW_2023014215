@@ -21,115 +21,142 @@ function LoginPage() {
       });
 
       const token = response.data.token;
+      // Simpan token ke localStorage
       localStorage.setItem('token', token);
+
+      // Arahkan ke dashboard
       navigate('/dashboard');
 
     } catch (err) {
+      // Tangani error dan tampilkan di UI
       setError(err.response && err.response.data && err.response.data.message 
         ? err.response.data.message 
-        : 'Login gagal. Periksa kembali email dan password.');
+        : 'Login gagal. Periksa kembali email dan password Anda.');
     }
   };
 
   return (
     <div 
-        className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden"
-        style={{
-            backgroundColor: "#5c94fc", // Mario Sky Blue
-            fontFamily: '"Press Start 2P", cursive', // Pixel Font
-        }}
+      className="min-h-screen flex flex-col items-center justify-center p-4"
+      // Mario Bros Castle/Ground Background
+      style={{
+        backgroundColor: '#4e342e', // Coklat Gelap Tanah/Pondasi
+        backgroundImage: 'linear-gradient(to right, #6d4c41 1px, transparent 1px), linear-gradient(to bottom, #6d4c41 1px, transparent 1px)', // Pola Bata
+        backgroundSize: '40px 40px',
+      }}
     >
-      {/* Import Font Pixel */}
-      <style>
-        {`@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');`}
-      </style>
-
-      {/* Awan-awan Dekorasi (CSS Only) */}
-      <div className="absolute top-10 left-10 text-white opacity-80 text-6xl">☁</div>
-      <div className="absolute top-20 right-20 text-white opacity-80 text-6xl">☁</div>
-
-      {/* Container Box (Style Batu Bata / Brick) */}
+      {/* Container Card Login (Efek Question Block/Castle Door) */}
       <div 
-        className="p-8 w-full max-w-md relative z-10"
+        className="p-8 w-full max-w-md relative shadow-2xl transition-transform transform hover:scale-[1.01]"
         style={{
-            backgroundColor: "#ffffff",
-            border: "4px solid #000000",
-            boxShadow: "8px 8px 0px 0px #000000", // Hard shadow
+          // Gaya Question Block
+          backgroundColor: '#ffc300', // Kuning Koin
+          border: '6px solid black',
+          boxShadow: '10px 10px 0px 0px #a0522d', // Shadow Coklat
+          backgroundImage: 'radial-gradient(circle at 50% 50%, #ffd700 10%, transparent 10%), radial-gradient(circle at 0% 0%, #ffeb3b 5%, transparent 5%)',
+          backgroundSize: '30px 30px',
         }}
       >
-        {/* Header Title */}
-        <div className="text-center mb-8">
-            <h2 className="text-2xl text-[#e70012] mb-2" style={{ textShadow: "2px 2px #000" }}>
-            ABSENSI 
-            </h2>
-            <div className="bg-[#fbd000] border-2 border-black p-2 inline-block">
-                <p className="text-[10px] text-black">LOGIN </p>
-            </div>
+
+        <div className="text-center mb-8 border-b-4 border-black pb-4 border-double">
+          <h2 className="text-4xl font-extrabold text-black uppercase tracking-widest" style={{ textShadow: "3px 3px 0px #ffffff" }}>
+            🔑 LOGIN
+          </h2>
+          <p className="text-sm font-mono mt-2 italic text-black font-bold">
+            
+          </p>
         </div>
         
-        {/* Error Message Box */}
+        {/* Pesan Error ala Game Over/Fire Flower */}
         {error && (
-          <div className="bg-[#000] text-white p-3 mb-5 text-xs border-2 border-white text-center animate-pulse">
-            <p>☠ {error}</p>
+          <div className="bg-[#ff4500] text-white p-4 mb-5 font-bold border-4 border-black shadow-[4px_4px_0px_0px_#8b0000]" role="alert">
+            <p className="font-extrabold border-b border-white inline-block mb-1 text-lg">ERROR</p>
+            <p className="text-sm">{error}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 font-mono">
           
           {/* INPUT EMAIL */}
           <div>
-            <label className="block text-xs mb-2 text-black">EMAIL :</label>
+            <label
+              htmlFor="email"
+              className="block text-sm font-bold text-black mb-1 uppercase tracking-wide"
+              style={{ textShadow: '1px 1px 0 #ffffff' }}
+            >
+              Email :
+            </label>
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="email@mario.com"
-              className="w-full px-4 py-3 bg-[#e0e0e0] border-4 border-black text-black placeholder-gray-500 focus:outline-none focus:bg-[#fff] focus:border-[#e70012]"
-              style={{ fontSize: '10px' }}
+              placeholder="mario@world1.com"
+              className="mt-1 w-full px-4 py-3 bg-white border-4 border-black text-black placeholder-gray-500 focus:outline-none focus:border-[#0070c0] focus:bg-[#e0ffff] transition-colors"
+              style={{ boxShadow: '2px 2px 0 #000000' }}
             />
           </div>
 
           {/* INPUT PASSWORD */}
           <div>
-            <label className="block text-xs mb-2 text-black">PASSWORD :</label>
+            <label
+              htmlFor="password"
+              className="block text-sm font-bold text-black mb-1 uppercase tracking-wide"
+              style={{ textShadow: '1px 1px 0 #ffffff' }}
+            >
+              Password :
+            </label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              placeholder="******"
-              className="w-full px-4 py-3 bg-[#e0e0e0] border-4 border-black text-black placeholder-gray-500 focus:outline-none focus:bg-[#fff] focus:border-[#e70012]"
-              style={{ fontSize: '10px' }}
+              placeholder="***"
+              className="mt-1 w-full px-4 py-3 bg-white border-4 border-black text-black placeholder-gray-500 focus:outline-none focus:border-[#0070c0] focus:bg-[#e0ffff] transition-colors"
+              style={{ boxShadow: '2px 2px 0 #000000' }}
             />
           </div>
 
-          {/* TOMBOL LOGIN (Green Pipe Style) */}
+          {/* TOMBOL LOGIN: Efek POW Block */}
           <button
             type="submit"
-            className="w-full py-4 px-4 bg-[#009c00] text-white text-xs border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-none transition-all active:bg-[#00b300]"
+            className="w-full py-3 px-4 bg-[#ff4500] text-white font-extrabold shadow border-b-8 border-[#8b0000] hover:bg-[#ff6347] active:border-b-0 active:mt-2 transition-all uppercase tracking-widest text-lg"
+            style={{ 
+                borderRadius: '5px',
+                // Garis putus-putus seperti POW Block
+                backgroundImage: 'repeating-linear-gradient(45deg, rgba(0,0,0,.2) 0px, rgba(0,0,0,.2) 2px, transparent 2px, transparent 5px)',
+                backgroundSize: '8px 8px'
+            }}
           >
-           (LOGIN)
+            Masuk 
           </button>
         </form>
 
-        <div className="mt-8 text-center pt-4 border-t-4 border-black border-dotted">
-          <p className="text-[10px] mb-2">Belum terdaftar ?</p>
+        {/* Tombol/Link Register: Menyerupai Warp Pipe */}
+        <div className="mt-8 pt-6 border-t-4 border-black border-dotted text-center">
+          <p className="text-sm text-black mb-3 font-mono font-bold">
+            Belum ada akun?
+          </p>
           <Link 
             to="/register" 
-            className="text-[#e70012] text-xs hover:underline decoration-2"
+            className="inline-block py-2 px-8 bg-[#339933] text-white font-bold shadow border-b-4 border-[#2e8b57] hover:bg-[#2e8b57] transition-all uppercase tracking-wider text-sm"
+            style={{ 
+                borderRadius: '10px / 30px',
+                boxShadow: '4px 4px 0px 0px #000000' 
+            }}
           >
-            Lakukan Pendaftaran &gt;
+            Lakukan Pendaftaran
           </Link>
         </div>
+        
       </div>
       
-      {/* Lantai / Ground */}
-      <div className="fixed bottom-0 w-full h-8 bg-[#c84c0c] border-t-4 border-black" 
-           style={{ backgroundImage: "linear-gradient(45deg, #d46b38 25%, transparent 25%, transparent 75%, #d46b38 75%, #d46b38), linear-gradient(45deg, #d46b38 25%, transparent 25%, transparent 75%, #d46b38 75%, #d46b38)", backgroundSize: "20px 20px", backgroundPosition: "0 0, 10px 10px" }}>
-      </div>
+      <footer className="mt-8 text-white text-xs font-mono opacity-80" style={{ textShadow: '1px 1px 0 #000000' }}>
+        Koopa Troopa Troop © 2025
+      </footer>
+
     </div>
   );
 }

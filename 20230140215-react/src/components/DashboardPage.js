@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
-import axios from 'axios';
+
+// --- LEAFLET IMPORTS (Untuk Peta Visual Saja) ---
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import 'leaflet/dist/leaflet.css';
 
-// --- LEAFLET ICON SETUP ---
+// Fix Icon Leaflet
 let DefaultIcon = L.icon({
   iconUrl: icon,
   shadowUrl: iconShadow,
@@ -19,218 +20,136 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const API_URL = 'http://localhost:3001/api/presensi';
-
 function DashboardPage() {
-  const [coords, setCoords] = useState(null);
-  const [userName, setUserName] = useState('Player');
+  const [userName, setUserName] = useState('Pengguna');
   const [userRole, setUserRole] = useState('');
-  const [error, setError] = useState(null);
-  const [message, setMessage] = useState('');
+  const [coords, setCoords] = useState(null); // Hanya untuk visualisasi peta
+  
   const navigate = useNavigate();
 
+  // 1. LOGOUT
   const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
     navigate('/login');
   }, [navigate]);
 
-  const getLocation = () => {
-    setError(null);
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
-        },
-        (error) => {
-          if (error.code === error.PERMISSION_DENIED) setError('Akses lokasi ditolak.');
-          else if (error.code === error.POSITION_UNAVAILABLE) setError('Lokasi tidak tersedia.');
-          else setError('Gagal mendapatkan lokasi.');
-          setCoords(null);
-        }
-      );
-    } else {
-      setError('Browser tidak support Geolocation.');
-      setCoords(null);
-    }
-  };
+  // 2. NAVIGASI (Tombol-tombol)
+  const goToPresensi = () => navigate('/presensi');
+  const goToLaporan = () => navigate('/laporan');
 
-  const showTempMessage = (msg, isError = false) => {
-    if (isError) {
-      setError(msg);
-      setTimeout(() => setError(null), 5000);
-    } else {
-      setMessage(msg);
-      setTimeout(() => setMessage(null), 5000);
-    }
-  };
-
-  const handleCheckIn = async (e) => {
-    e.preventDefault();
-    if (!coords) return showTempMessage('Lokasi belum ditemukan!', true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${API_URL}/checkin`,
-        { latitude: coords.lat, longitude: coords.lng },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      showTempMessage(response.data.message || '1-UP! Check-in Berhasil!');
-    } catch (err) {
-      showTempMessage(err.response ? err.response.data.message : 'Check-in Gagal.', true);
-    }
-  };
-
-  const handleCheckOut = async (e) => {
-    e.preventDefault();
-    if (!coords) return showTempMessage('Lokasi belum ditemukan!', true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${API_URL}/checkout`,
-        { latitude: coords.lat, longitude: coords.lng },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      showTempMessage(response.data.message || 'Stage Clear! Check-out Berhasil!');
-    } catch (err) {
-      showTempMessage(err.response ? err.response.data.message : 'Check-out Gagal.', true);
-    }
-  };
-
-  const handleViewPresensi = () => navigate('/laporan');
-
+  // 3. AMBIL LOKASI (Hanya untuk visualisasi peta di dashboard)
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return handleLogout();
+
     try {
       const decoded = jwtDecode(token);
-      setUserName(decoded.nama || 'Player');
-      setUserRole(decoded.role || 'mahasiswa');
+      setUserName(decoded.nama || 'User');
+      setUserRole(decoded.role || 'user');
       if (decoded.exp * 1000 < Date.now()) handleLogout();
     } catch (err) {
       handleLogout();
     }
-    getLocation();
+
+    // Ambil lokasi sekedar untuk menampilkan peta "Lokasi Anda Sekarang"
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        setCoords({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+      });
+    }
   }, [handleLogout]);
 
+  // --- TAMPILAN DASHBOARD ---
   return (
     <div
       className="min-h-screen w-full flex flex-col items-center p-4"
+      // Mario Bros Sky Background (Langit Biru cerah)
       style={{
-        backgroundColor: "#5c94fc", // Sky Blue Mario
-        fontFamily: '"Press Start 2P", cursive',
+        backgroundColor: '#6b8cff', // Warna Langit Mario
+        backgroundImage: 'radial-gradient(circle, #ffffff 15%, transparent 20%)', // Efek Awan
+        backgroundSize: '200px 200px',
+        backgroundPosition: '0 50px, 100px 150px'
       }}
     >
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');`}</style>
-
-      {/* Awan-awan Dekorasi (CSS Only) */}
-      <div className="absolute top-10 left-10 text-white opacity-80 text-6xl">☁</div>
-      <div className="absolute top-20 right-20 text-white opacity-80 text-6xl">☁</div>
-
-      {/* HUD Header */}
-      <header className="w-full max-w-xl flex justify-between items-start py-4 px-4 mb-4 text-white text-[10px] drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">
-        <div>
-            <p className="text-[#fbd000] mb-1">NAMA :</p>
-            <p>{userName.toUpperCase()}</p>
-        </div>
-        <div className="text-right">
-             <p className="text-[#fbd000] mb-1">STATUS :</p>
-             <p>{userRole.toUpperCase()}</p>
-        </div>
-        <button onClick={handleLogout} className="bg-red-600 border-2 border-white px-2 py-1 hover:bg-red-800">
-            KELUAR
+      {/* HEADER: Coin Block / Papan Skor */}
+      <header 
+        className="w-full max-w-xl flex justify-between items-center py-3 px-4 mb-8 border-4 border-black bg-[#ff8c00] text-black shadow-[4px_4px_0px_0px_#000000]"
+        style={{
+            // Gaya Kotak Koin (Coin Block)
+            backgroundImage: 'repeating-linear-gradient(45deg, rgba(255,255,255,.1) 0px, rgba(255,255,255,.1) 1px, transparent 1px, transparent 8px)',
+            backgroundSize: '10px 10px',
+        }}
+      >
+        <h1 className="text-3xl font-extrabold uppercase tracking-widest text-white shadow-text-black"
+            style={{ textShadow: '2px 2px 0 #000000' }}>
+          ⭐ DASHBOARD
+        </h1>
+        <button
+          onClick={handleLogout}
+          // Tombol Keluar: Menyerupai 'Question Block' atau 'Warp Zone' sign
+          className="py-1 px-4 text-sm font-bold bg-[#f7e000] text-black border-4 border-black shadow-[2px_2px_0px_0px_#8b4513] hover:bg-[#f3ca40] transition"
+        >
+          KELUAR 🚪
         </button>
       </header>
 
-      {/* Game Card */}
+      {/* KARTU UTAMA: Menyerupai Balok Bata (Brick Block) */}
       <div 
-        className="w-full max-w-xl relative p-1"
+        className="p-8 w-full max-w-xl space-y-6 relative shadow-lg"
         style={{
-          backgroundColor: "#ffccc5", 
-          border: "4px solid #000",
-          boxShadow: "8px 8px 0px 0px rgba(0,0,0,0.5)"
+          // Gaya Balok Bata (Brick Block)
+          backgroundColor: '#a52a2a', // Coklat Bata
+          border: '4px solid black',
+          boxShadow: '8px 8px 0px 0px #8b4513', // Shadow Coklat Tua
+          backgroundImage: 'linear-gradient(to right, #8b4513 1px, transparent 1px), linear-gradient(to bottom, #8b4513 1px, transparent 1px)',
+          backgroundSize: '25px 25px',
+          backgroundPosition: '0 0, 0 0',
         }}
       >
-        {/* Title Box */}
-        <div className="bg-[#c84c0c] p-4 border-b-4 border-black text-white mb-4 text-center">
-            <h2 className="text-xs">ABSENSI </h2>
+        {/* Info User */}
+        <div className="text-center border-b-4 border-black border-dotted pb-6">
+          <h2 className="text-3xl font-extrabold text-white" 
+              style={{ textShadow: '2px 2px 0 #000000' }}>
+            👑 {userName}
+          </h2>
+          <p className="text-sm text-[#f7e000] italic font-mono uppercase tracking-widest mt-2"
+             style={{ textShadow: '1px 1px 0 #000000' }}>
+            {userRole} USER
+          </p>
         </div>
 
-        <div className="px-4 pb-4 space-y-4">
-            {/* Notification Box */}
-            {message && (
-                <div className="bg-[#009c00] border-4 border-black text-white p-3 text-[10px] text-center">
-                    <p>★ {message}</p>
-                </div>
-            )}
-            {error && (
-                <div className="bg-[#e70012] border-4 border-black text-white p-3 text-[10px] text-center">
-                    <p>☠ {error}</p>
-                </div>
-            )}
+        {/* --- MENU TOMBOL --- */}
+        <div className="grid gap-6 pt-4">
+            
+            {/* TOMBOL 1: KE HALAMAN ABSEN (PIPA WARP ZONE) */}
+            <button
+                onClick={goToPresensi}
+                className="w-full py-5 bg-[#339933] text-white text-2xl font-extrabold uppercase tracking-widest shadow-[4px_4px_0px_0px_#000000] hover:bg-[#2e8b57] hover:scale-[1.01] transition-transform border-4 border-black flex items-center justify-center gap-3"
+                style={{ borderRadius: '15px / 45px', borderBottom: 'none' }} // Efek Pipa
+            >
+                PRESENSI 🍄
+            </button>
 
-            {/* MAP AREA */}
-            <div className="border-4 border-black bg-[#9290ff] p-1">
-                <div className="flex justify-between items-center bg-black text-white p-2 mb-1">
-                    <span className="text-[10px]">MAP : </span>
-                    <button onClick={getLocation} className="text-[#fbd000] text-[10px] hover:underline">RESET</button>
-                </div>
-                {coords ? (
-            <p className="text-sm text-[#33691e] font-mono bg-[#dce775] bg-opacity-20 p-2 inline-block border border-[#cddc39]">
-              Lat: {coords.lat.toFixed(5)}, Lng: {coords.lng.toFixed(5)}
-            </p>
-          ) : (
-            <p className="text-sm text-[#bf360c] font-mono bg-[#ffccbc] bg-opacity-20 p-2 inline-block border border-[#ffab91]">
-              Menunggu sinyal lokasi...
-            </p>
-          )}
-                <div className="h-[250px] w-full bg-white relative">
-                    {coords ? (
-                        <MapContainer center={[coords.lat, coords.lng]} zoom={17} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
-                            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                            <Marker position={[coords.lat, coords.lng]}><Popup>Here!</Popup></Marker>
-                        </MapContainer>
-                    ) : (
-                        <div className="h-full flex items-center justify-center text-[8px] text-black">
-                            <p>LOADING TERRAIN...</p>
-                        </div>
-                    )}
-                    
-                </div>
-            </div>
-
-            {/* Action Blocks */}
-            <div className="grid grid-cols-2 gap-4">
-                <button
-                    onClick={handleCheckIn}
-                    disabled={!coords}
-                    className={`py-4 border-4 border-black text-[10px] shadow-[4px_4px_0_0_black] active:translate-y-1 active:shadow-none flex flex-col items-center justify-center gap-1 ${coords ? 'bg-[#fbd000] text-black hover:bg-yellow-300' : 'bg-gray-500 text-white cursor-not-allowed'}`}
-                >
-                   <span className="text-lg">?</span> CHECK IN
-                </button>
-
-                <button
-                    onClick={handleCheckOut}
-                    disabled={!coords}
-                    className={`py-4 border-4 border-black text-[10px] shadow-[4px_4px_0_0_black] active:translate-y-1 active:shadow-none flex flex-col items-center justify-center gap-1 ${coords ? 'bg-[#e70012] text-white hover:bg-red-500' : 'bg-gray-500 text-white cursor-not-allowed'}`}
-                >
-                   <span className="text-lg">!</span> CHECK OUT
-                </button>
-            </div>
-
-            {userRole === 'admin' && (
-                <button onClick={handleViewPresensi} className="w-full py-3 bg-[#009c00] text-white text-[10px] border-4 border-black shadow-[4px_4px_0_0_black] hover:bg-green-600">
-                    ENTER WARP PIPE (LAPORAN) &gt;&gt;
-                </button>
-            )}
+            {/* TOMBOL 2: KE HALAMAN LAPORAN (GREEN SHELL / MUSHROOM) */}
+            <button
+                onClick={goToLaporan}
+                className="w-full py-4 bg-[#f0e68c] text-black font-bold uppercase tracking-wider border-4 border-black hover:bg-[#ffeb3b] transition shadow-[3px_3px_0px_0px_#a52a2a] flex items-center justify-center gap-3"
+                style={{ borderRadius: '5px' }}
+            >
+                📜 LAPORAN
+            </button>
         </div>
       </div>
-      
-      {/* Ground */}
-      <div className="fixed bottom-0 w-full h-12 bg-[#c84c0c] border-t-4 border-black" 
-           style={{ backgroundImage: "linear-gradient(45deg, #d46b38 25%, transparent 25%, transparent 75%, #d46b38 75%, #d46b38), linear-gradient(45deg, #d46b38 25%, transparent 25%, transparent 75%, #d46b38 75%, #d46b38)", backgroundSize: "20px 20px" }}>
-      </div>
+
+      <footer className="mt-10 text-black text-xs font-mono opacity-80"
+              style={{ textShadow: '1px 1px 0 #ffffff' }}>
+        Koopa Troopa Troop © 2025
+      </footer>
     </div>
   );
 }
 
-export default DashboardPage;
+export default DashboardPage; 
