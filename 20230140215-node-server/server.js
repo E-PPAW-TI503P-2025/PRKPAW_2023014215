@@ -11,12 +11,14 @@ const booksRouter = require('./routes/books');
 const presensiRoutes = require("./routes/presensi");
 const reportRoutes = require("./routes/reports");
 const authRoutes = require("./routes/auth");
+const iotRoutes = require("./routes/iot");
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev")); // Logger yang lebih detail
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use("/api/iot", iotRoutes);
 
 // Custom logger middleware
 app.use((req, res, next) => {
